@@ -24,13 +24,16 @@ export interface BrainTypeInfo {
   readingStrategy: string[];
   memoryStrategy: string[];
   decisionStrategy: string[];
+  successCareers: string[]; // 추가: 성공적인 직업군
   chemistry: {
     partner: string;
+    partnerType: BrainType;
     synergy: string;
+    description: string; // 추가: 상호관계 상세 설명
   };
   blindSpot: string;
   declaration: string;
-  recommendedAction: string; // 추천 실천 사항 추가
+  recommendedAction: string;
 }
 
 export interface DiagnosticResult {

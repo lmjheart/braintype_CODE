@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [diagnosticData, setDiagnosticData] = useState<DiagnosticResult | null>(null);
   const [showCard, setShowCard] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   
   const cardRef = useRef<HTMLDivElement>(null);
   const cardAreaRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,8 @@ const App: React.FC = () => {
   }, [showCard]);
 
   const calculateResult = () => {
+    if (step === 'LOADING' || step === 'RESULT') return;
+
     const counts = answers.reduce((acc, type) => {
       if (type) acc[type] = (acc[type] || 0) + 1;
       return acc;
@@ -94,24 +97,37 @@ const App: React.FC = () => {
   };
 
   const saveAsImage = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current || isCapturing) return;
+    setIsCapturing(true);
+    
     try {
-      // 캡처 시 요소의 전체 높이를 반영하기 위해 window의 스크롤 위치를 고려하거나 요소를 복제하지 않고 직접 캡처
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
+      const element = cardRef.current;
+      // 캡처 전용 옵션: 스크롤 및 보이지 않는 영역까지 강제로 렌더링
+      const canvas = await html2canvas(element, {
+        scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: "#ffffff", // 투명 방지 및 흰색 배경 강제
-        scrollY: -window.scrollY, // 스크롤 위치에 따른 잘림 방지
-        windowHeight: cardRef.current.scrollHeight + 100 // 여유 높이 확보
+        backgroundColor: "#ffffff",
+        windowWidth: 340, // 카드 너비 고정
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.querySelector('.limitless-card-container') as HTMLElement;
+          if (clonedElement) {
+            clonedElement.style.height = 'auto'; // 높이 제한 해제
+            clonedElement.style.maxHeight = 'none';
+            clonedElement.style.overflow = 'visible';
+          }
+        }
       });
+      
       const link = document.createElement('a');
-      link.download = `${userName}_Limitless_Brain_Card.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.download = `${userName}_마지막몰입_선언서.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (err) {
       console.error(err);
-      alert('이미지 저장 중 오류가 발생했습니다.');
+      alert('이미지 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -124,6 +140,9 @@ const App: React.FC = () => {
     setDiagnosticData(null);
     setShowCard(false);
   };
+
+  // 퀴즈 렌더링 시 안전한 인덱스 접근을 위해 렌더링 함수 내에서 선언
+  const currentQuestion = QUESTIONS[currentQuestionIdx] || null;
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-2xl relative overflow-x-hidden font-['Pretendard']">
@@ -155,8 +174,8 @@ const App: React.FC = () => {
           </motion.div>
         )}
 
-        {step === 'QUIZ' && (
-          <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col p-6 min-h-screen">
+        {step === 'QUIZ' && currentQuestion && (
+          <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col p-6 min-h-screen">
             <div className="mb-10">
               <div className="flex justify-between items-end mb-4 px-1">
                 <span className="text-sm font-black text-indigo-600 uppercase tracking-widest">Question {currentQuestionIdx + 1}</span>
@@ -166,9 +185,11 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex-1">
-              <h3 className="text-2xl font-black text-gray-800 mb-12 break-keep leading-tight">{QUESTIONS[currentQuestionIdx].text}</h3>
+              <h3 className="text-2xl font-black text-gray-800 mb-12 break-keep leading-tight">
+                {currentQuestion.text}
+              </h3>
               <div className="space-y-4">
-                {QUESTIONS[currentQuestionIdx].options.map((opt, i) => (
+                {currentQuestion.options.map((opt, i) => (
                   <button 
                     key={i} 
                     onClick={() => handleSelectOption(opt.type)}
@@ -192,15 +213,19 @@ const App: React.FC = () => {
 
             <div className="mt-12 flex gap-4">
               <Button variant="secondary" onClick={() => setCurrentQuestionIdx(Math.max(0, currentQuestionIdx - 1))} disabled={currentQuestionIdx === 0} className="flex-1 h-14 rounded-2xl">이전</Button>
-              <Button onClick={() => currentQuestionIdx === QUESTIONS.length - 1 ? calculateResult() : setCurrentQuestionIdx(currentQuestionIdx + 1)} disabled={!answers[currentQuestionIdx]} className="flex-[2] h-14 rounded-2xl">
-                {currentQuestionIdx === QUESTIONS.length - 1 ? '데이터 분석 결과 보기' : '다음'}
+              <Button 
+                onClick={() => currentQuestionIdx === QUESTIONS.length - 1 ? calculateResult() : setCurrentQuestionIdx(currentQuestionIdx + 1)} 
+                disabled={!answers[currentQuestionIdx]} 
+                className="flex-[2] h-14 rounded-2xl"
+              >
+                {currentQuestionIdx === QUESTIONS.length - 1 ? '분석 결과 보기' : '다음'}
               </Button>
             </div>
           </motion.div>
         )}
 
         {step === 'LOADING' && (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-screen">
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-screen">
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-20 h-20 border-[6px] border-indigo-50 border-t-indigo-600 rounded-full mb-8" />
             <h2 className="text-2xl font-black text-gray-800 mb-2">지능 시스템 분석 중...</h2>
             <p className="text-gray-400 font-medium italic">"우리는 우리의 한계를 스스로 결정한다."</p>
@@ -239,7 +264,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* [순서변경] 2. 커리어 성공 로드맵 */}
+              {/* [순서 요청 적용] 2. 커리어 성공 로드맵 */}
               <div className="bg-indigo-50 rounded-[2.5rem] p-9 border border-indigo-100 shadow-inner">
                 <h3 className="text-xl font-black text-indigo-900 mb-8 flex items-center gap-3"><Briefcase size={22} /> 커리어 성공 로드맵</h3>
                 <div className="grid grid-cols-1 gap-4">
@@ -254,7 +279,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* [순서변경] 3. 베스트 시너지 관계 */}
+              {/* [순서 요청 적용] 3. 베스트 시너지 관계 */}
               <div className="bg-white rounded-[2.5rem] p-9 shadow-xl border border-gray-100 overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full -mr-16 -mt-16 opacity-50" />
                 <h3 className="text-xl font-black text-gray-800 mb-8 flex items-center gap-3"><Users2 size={22} className="text-indigo-600" /> 베스트 시너지 관계</h3>
@@ -281,7 +306,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* [순서변경] 4. 브레인 마스터 전략 */}
+              {/* [순서 조정] 4. 브레인 마스터 전략 */}
               <div className="bg-white rounded-[2.5rem] p-9 shadow-xl border border-gray-100">
                 <h3 className="text-2xl font-black text-gray-800 mb-12 text-center underline decoration-indigo-100 decoration-8 underline-offset-[-2px]">브레인 마스터 전략</h3>
                 <div className="space-y-14">
@@ -344,8 +369,9 @@ const App: React.FC = () => {
                     <DeclarationCard userName={userName} typeInfo={diagnosticData.primary} customCommitment={customCommitment} cardRef={cardRef} />
                     
                     <div className="w-full mt-16 px-4 space-y-4">
-                      <Button fullWidth size="lg" onClick={saveAsImage} className="h-20 text-xl shadow-2xl bg-indigo-600 group">
-                        <Download size={24} className="mr-3 group-hover:animate-bounce" /> 마스터리 선언서 저장하기
+                      <Button fullWidth size="lg" onClick={saveAsImage} disabled={isCapturing} className="h-20 text-xl shadow-2xl bg-indigo-600 group">
+                        {isCapturing ? <RefreshCw size={24} className="animate-spin mr-3" /> : <Download size={24} className="mr-3 group-hover:animate-bounce" />}
+                        {isCapturing ? '이미지 생성 중...' : '마스터리 선언서 저장하기'}
                       </Button>
                       <button onClick={resetTest} className="w-full py-6 text-gray-400 font-bold text-sm flex items-center justify-center gap-2 hover:text-indigo-600 transition-colors">
                         <RefreshCw size={18} /> 다시 진단하여 잠재력 탐색하기

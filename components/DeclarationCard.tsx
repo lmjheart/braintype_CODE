@@ -14,14 +14,15 @@ const DeclarationCard: React.FC<DeclarationCardProps> = ({ userName, typeInfo, c
   return (
     <div 
       ref={cardRef}
-      className="relative w-full max-w-[340px] h-auto min-h-[580px] rounded-[3.5rem] bg-white border-8 flex flex-col limitless-card-glow"
+      // limitless-card-container 클래스는 캡처 로직에서 높이 제어를 위해 사용됩니다.
+      className="limitless-card-container relative w-full max-w-[340px] h-auto min-h-[600px] rounded-[3.5rem] bg-white border-8 flex flex-col transition-all duration-500 shadow-2xl overflow-visible"
       style={{ borderColor: `${typeInfo.color}22` }}
     >
-      {/* 프리미엄 그라데이션 오버레이 - 캡처 시 잘림 방지를 위해 overflow-hidden 제거 */}
+      {/* 배경 오버레이 효과 */}
       <div className="absolute top-0 right-0 w-64 h-64 blur-[80px] opacity-20 pointer-events-none rounded-full" style={{ backgroundColor: typeInfo.color }} />
       <div className="absolute bottom-0 left-0 w-64 h-64 blur-[80px] opacity-10 pointer-events-none rounded-full" style={{ backgroundColor: typeInfo.color }} />
       
-      <div className="relative z-10 p-8 flex flex-col items-center text-center">
+      <div className="relative z-10 p-8 flex flex-col items-center text-center w-full">
         {/* 상단 인증 마크 */}
         <div className="flex justify-between w-full mb-6">
           <div className="flex items-center gap-1 opacity-40">
@@ -29,7 +30,7 @@ const DeclarationCard: React.FC<DeclarationCardProps> = ({ userName, typeInfo, c
             <span className="text-[8px] font-black uppercase tracking-tighter text-gray-400">Limitless Protocol</span>
           </div>
           <div className="opacity-40">
-            <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Verified by Jim Kwik</span>
+            <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Certified Mastery</span>
           </div>
         </div>
 
@@ -42,7 +43,7 @@ const DeclarationCard: React.FC<DeclarationCardProps> = ({ userName, typeInfo, c
 
         {/* 메인 엠블럼 */}
         <div 
-          className="w-24 h-24 rounded-[2.5rem] flex items-center justify-center mb-8 text-white text-5xl font-black relative shadow-xl"
+          className="w-24 h-24 rounded-[2.5rem] flex items-center justify-center mb-8 text-white text-5xl font-black relative shadow-xl flex-shrink-0"
           style={{ 
             backgroundColor: typeInfo.color,
             boxShadow: `0 15px 30px -5px ${typeInfo.color}66`
@@ -66,17 +67,20 @@ const DeclarationCard: React.FC<DeclarationCardProps> = ({ userName, typeInfo, c
           </p>
         </div>
 
-        {/* 마스터리 다짐 각인 (가변 높이 핵심 수정 부분) */}
+        {/* 마스터리 다짐 각인 (가변 높이 핵심 수정) */}
         {customCommitment && (
-          <div className="w-full bg-gray-50/50 p-6 rounded-[2.2rem] border-2 border-dashed relative mb-8" style={{ borderColor: `${typeInfo.color}33` }}>
+          <div 
+            className="w-full bg-gray-50/70 p-6 rounded-[2.2rem] border-2 border-dashed relative mb-8 flex flex-col items-center" 
+            style={{ borderColor: `${typeInfo.color}33` }}
+          >
             <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none" style={{ color: typeInfo.color }}>
               <ShieldCheck size={60} />
             </div>
             <span className="absolute -top-3 left-6 bg-white px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Mastery Commitment</span>
-            <div className="text-[14px] font-black text-gray-800 leading-relaxed break-all relative z-10 text-center whitespace-pre-wrap">
+            <div className="text-[15px] font-black text-gray-800 leading-relaxed relative z-10 text-center whitespace-pre-wrap break-words w-full">
               {customCommitment}
             </div>
-            <div className="mt-5 pt-4 border-t border-gray-200 flex justify-between items-center">
+            <div className="mt-5 pt-4 border-t border-gray-200 flex justify-between items-center w-full">
                <span className="text-[9px] font-black text-gray-300 italic uppercase">Certified Action</span>
                <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: typeInfo.color }} />
@@ -86,8 +90,8 @@ const DeclarationCard: React.FC<DeclarationCardProps> = ({ userName, typeInfo, c
           </div>
         )}
 
-        {/* 푸터 */}
-        <div className="mt-4 pt-6 pb-2 border-t border-gray-100 w-full">
+        {/* 푸터 (하단 여백 확보) */}
+        <div className="mt-auto pt-6 pb-2 border-t border-gray-100 w-full">
           <p className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em]">"Becoming the hero of your own story"</p>
         </div>
       </div>
